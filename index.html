@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>S3 File Manager</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f5f7fa;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #4a90e2;
+    }
+    label, input, button, select {
+      display: block;
+      width: 100%;
+      margin-top: 1rem;
+    }
+    input[type="text"], input[type="file"] {
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      background-color: #4a90e2;
+      color: white;
+      border: none;
+      padding: 0.75rem;
+      margin-top: 1rem;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #357ab8;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    li {
+      background: #f0f0f0;
+      padding: 0.5rem;
+      margin-top: 0.5rem;
+      border-radius: 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .file-actions button {
+      margin-left: 0.5rem;
+      padding: 0.3rem 0.6rem;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>✨ S3 File Manager</h1>
+
+    <label for="bucketInput">Bucket Name:</label>
+    <input type="text" id="bucketInput" placeholder="Enter your S3 bucket name..." />
+
+    <h2>⬆️ Upload File</h2>
+    <input type="file" id="fileInput" />
+    <button onclick="uploadFile()">Upload</button>
+
+    <h2>🔍 List Files</h2>
+    <button onclick="loadFiles()">🔄 Refresh List</button>
+    <ul id="fileList"></ul>
+  </div>
+
+  <script>
+    const API_BASE = "http://localhost:8000";
+
+    function getBucket() {
+      const bucket = document.getElementById("bucketInput").value.trim();
+      if (!bucket) {
+        alert("❌ Please enter a bucket name first.");
+        throw new Error("Bucket name required.");
+      }
+      return bucket;
+    }
+
+    async function uploadFile() {
+      const fileInput = document.getElementById("fileInput");
+      const file = fileInput.files[0];
+      const bucket = getBucket();
+      if (!file) {
+        alert("Please choose a file to upload.");
+        return;
+      }
+      const formData = new FormData();
+      formData.append("file", file);
+      try {
+        const res = await fetch(`${API_BASE}/upload?bucket=${bucket}`, {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+        alert(data.message || "Upload success");
+        loadFiles();
+      } catch (err) {
+        console.error(err);
+        alert("Upload failed.");
+      }
+    }
+
+    async function loadFiles() {
+      const bucket = getBucket();
+      try {
+        const res = await fetch(`${API_BASE}/list?bucket=${bucket}`);
+        const data = await res.json();
+        const list = document.getElementById("fileList");
+        list.innerHTML = "";
+        if (!data.files || data.files.length === 0) {
+          list.innerHTML = "<li>No files in bucket.</li>";
+          return;
+        }
+        data.files.forEach(file => {
+          const li = document.createElement("li");
+          li.textContent = file;
+
+          const actions = document.createElement("div");
+          actions.className = "file-actions";
+
+          const downloadBtn = document.createElement("button");
+          downloadBtn.textContent = "🔧 Download";
+          downloadBtn.onclick = () => {
+            window.open(`${API_BASE}/download?bucket=${bucket}&filename=${file}`, "_blank");
+          };
+
+          const deleteBtn = document.createElement("button");
+          deleteBtn.textContent = "🗑️ Delete";
+          deleteBtn.onclick = async () => {
+            if (confirm(`Are you sure you want to delete '${file}'?`)) {
+              await fetch(`${API_BASE}/delete?bucket=${bucket}&filename=${file}`, {
+                method: "DELETE",
+              });
+              loadFiles();
+            }
+          };
+
+          actions.appendChild(downloadBtn);
+          actions.appendChild(deleteBtn);
+          li.appendChild(actions);
+          list.appendChild(li);
+        });
+      } catch (err) {
+        console.error(err);
+        alert("Failed to load file list.");
+      }
+    }
+  </script>
+</body>
+</html> 
+
+
