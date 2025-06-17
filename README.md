@@ -5,6 +5,8 @@
 A full-stack file manager built with **FastAPI** and a simple **HTML/JavaScript frontend**, enabling you to **upload**, **list**, **download**, and **delete** files from an **AWS S3 bucket**.
 
 ---
+![Screenshot 2025-06-17 155623](https://github.com/user-attachments/assets/6913a939-716b-498f-92a8-0727ac09b1c2)
+
 
 ##  Features
 
